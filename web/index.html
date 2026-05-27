@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AirCanvas</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="stage" aria-label="AirCanvas">
+        <video class="input-video" playsinline></video>
+        <canvas id="output-canvas" width="1280" height="720"></canvas>
+        <canvas id="drawing-canvas" width="1280" height="720"></canvas>
+      </section>
+
+      <aside class="toolbar" aria-label="Drawing tools">
+        <button class="tool is-active" type="button" data-color="#1e63ff" aria-label="Blue">
+          <span style="background:#1e63ff"></span>
+        </button>
+        <button class="tool" type="button" data-color="#ff3030" aria-label="Red">
+          <span style="background:#ff3030"></span>
+        </button>
+        <button class="tool" type="button" data-color="#13b957" aria-label="Green">
+          <span style="background:#13b957"></span>
+        </button>
+        <button class="tool" type="button" data-color="eraser" aria-label="Eraser">
+          <span class="eraser"></span>
+        </button>
+        <button id="clear-button" class="clear-button" type="button" aria-label="Clear canvas">Clear</button>
+      </aside>
+
+      <div class="status" id="status">Starting camera...</div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
