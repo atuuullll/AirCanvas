@@ -3,9 +3,6 @@
 Draw anything on the screen with your **index finger** — no stylus, no touchscreen, just your webcam and your hand! ✍️🖐️  
 This real-time gesture-based drawing app is powered by **MediaPipe** and **OpenCV** using hand landmarks and finger detection.
 
-## 🖼 Demo
-
-![Demo](assets/Demo.gif)
 
 ## 🧠 How It Works
 
