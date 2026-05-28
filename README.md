@@ -1,63 +1,72 @@
-# 🎨 AirCanvas — OpenCV + MediaPipe Project
+# AirCanvas
 
-Draw anything on the screen with your **index finger** — no stylus, no touchscreen, just your webcam and your hand! ✍️🖐️  
-This real-time gesture-based drawing app is powered by **MediaPipe** and **OpenCV** using hand landmarks and finger detection.
+AirCanvas is a real-time virtual drawing application that lets users create and edit artwork using hand gestures captured through a webcam. Built with OpenCV and MediaPipe, the project tracks hand landmarks, interprets finger patterns, and converts them into drawing, selection, erasing, copy, paste, undo, and redo actions on a digital canvas.
 
+The application is designed as an accessible, touch-free drawing interface. Users can draw with an index finger, switch tools through gesture-based selection, copy selected canvas regions, preview pasted content before placing it, and manage clipboard history without relying on a mouse or touchscreen.
 
-## 🧠 How It Works
+## Key Features
 
-🖐️ This project uses your webcam to detect hand gestures and switches between drawing and selection modes based on finger positions:
+- Real-time hand tracking using MediaPipe hand landmarks
+- Webcam-based drawing with index-finger movement
+- Gesture-controlled tool selection for brush colors and eraser
+- Three-finger eraser mode for quick corrections
+- Region selection with visual selection feedback
+- Gesture-based copy and paste workflow
+- Paste preview before placing copied content
+- Multi-item clipboard history with thumbnail indicator
+- Keyboard-supported undo, redo, and clipboard cycling
+- Fullscreen OpenCV canvas with live gesture guidance
 
-- ☝️ **Only Index Finger Up** → Drawing Mode
-- ✌️ **Index + Middle Finger Up** → Selection Mode (choose color or eraser)
-- ✋ **All 5 Fingers Up** → Clear the entire drawing board
+## Gesture Controls
 
-You can toggle between different **colors** and an **eraser** by moving your fingers to the top toolbar area.
+- **Index finger up**: Draw on the canvas
+- **Index and middle fingers up**: Enter selection mode or choose a toolbar option
+- **Three fingers up**: Use eraser mode
+- **Five fingers up**: Clear the canvas and reset history
+- **Pinch gesture in selection mode**: Copy the selected canvas area
+- **Paste gesture**: Preview copied content; release to paste
 
----
+## Keyboard Shortcuts
 
-## 🚀 Features
+- **Q**: Quit the application
+- **U**: Undo the last saved canvas action
+- **R**: Redo the last undone canvas action
+- **C**: Cycle through clipboard items
 
-✅ Real-time hand tracking with MediaPipe  
-✅ Draw using your index finger  
-✅ Select colors & eraser using gestures  
-✅ Clear canvas with a five-finger gesture  
-✅ Smooth and responsive drawing experience  
-✅ Works offline with just a webcam
+## Project Structure
 
----
+- `drawingBoard.py`: Main application loop, drawing logic, gesture actions, and OpenCV UI
+- `handTrackingModule.py`: MediaPipe hand detection and gesture recognition helpers
+- `clipboardManager.py`: Copy, paste, clipboard history, and paste preview support
+- `undoRedoManager.py`: Canvas state history for undo and redo
+- `config.py`: Gesture sensitivity, drawing thickness, and UI configuration
+- `assets/`: Demo and toolbar image assets
+- `web/`: Static web files for project presentation
 
-## 🧠 What You'll Learn
+## Getting Started
 
-- How to detect fingers using MediaPipe hand landmarks
-- Creating interactive tools using OpenCV (color palette, buttons)
-- Switching modes using finger gesture logic
-- Drawing with custom brush sizes and color handling
-- Simple UI creation with OpenCV overlays
+1. Install the required dependencies:
 
----
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## 🔧 Getting Started
+2. Run the application:
 
-### How to run:
+   ```bash
+   python drawingBoard.py
+   ```
 
-1.  **Install the required dependencies, globlally or by creating a virtual environment:**
+3. Allow webcam access when prompted. The application opens in a fullscreen OpenCV window.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+## Requirements
 
-2.  **Run the application:**
-
-    ```bash
-    python drawingBoard.py
-    ```
-
-## Dependencies
-
+- Python
 - OpenCV
 - MediaPipe
-- Numpy
+- NumPy
+- A working webcam
 
-Contributions are welcome! 🙏 If you have any ideas for improvements, feel free to submit a pull request.\
-Follow me for more exciting projects like this! 🤩
+## Notes
+
+For the best tracking experience, use the application in a well-lit environment with your hand clearly visible to the camera. Gesture recognition depends on camera quality, lighting, and how consistently the hand is positioned in frame.
