@@ -1,6 +1,6 @@
 [build]
-  publish = "web"
-  command = ""
+  publish = "web/dist"
+  command = "npm --prefix web install && npm --prefix web run build"
 
 [[headers]]
   for = "/*"

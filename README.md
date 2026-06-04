@@ -41,11 +41,56 @@ The application is designed as an accessible, touch-free drawing interface. User
 - `undoRedoManager.py`: Canvas state history for undo and redo
 - `config.py`: Gesture sensitivity, drawing thickness, and UI configuration
 - `assets/`: Demo and toolbar image assets
-- `web/`: Static web files for project presentation
+- `web/`: Vite React web app for live browser deployment
+- `web/src/App.jsx`: Browser AirCanvas UI, hand tracking loop, drawing engine, layers, and export/share controls
+- `web/src/styles.css`: Tailwind entry file and custom dashboard styling
+
+## Tech Stack
+
+AirCanvas now has two runnable versions:
+
+### Desktop App
+
+- **Python**
+- **OpenCV**
+- **MediaPipe**
+- **NumPy**
+
+### Web App
+
+- **React** with **Vite** for the browser application
+- **Tailwind CSS** for responsive styling
+- **Motion** for animated panels and gesture feedback
+- **Canvas API** for drawing, layers, brush effects, undo/redo, and export
+- **MediaPipe Hand Landmarker** through `@mediapipe/tasks-vision` for browser-based hand tracking
+
+### Web App Features
+
+- Dark and light theme toggle
+- Brush size, opacity, brush type, and custom color controls
+- Color history and preset palette
+- Gesture animations and real-time status feedback
+- FPS and frame-time monitoring
+- Undo, redo, clear, save, and share
+- Three drawing layers
+- PNG and JPG export
+- Keyboard shortcuts
+
+### Optional Future Backend
+
+The web app currently runs fully in the browser. A backend can be added later for accounts, cloud saves, public galleries, and share links:
+
+- **Node.js and Express** for APIs
+- **MongoDB** for saved drawings and user profiles
+- **AWS S3** for exported images and shared artwork
+- **Render** for the optional backend API
+- **AWS** for long-term image storage
 
 ## Getting Started
 
-1. Install the required dependencies:
+### Desktop App
+
+1. Install the Python dependencies:
 
    ```bash
    pip install -r requirements.txt
@@ -59,13 +104,44 @@ The application is designed as an accessible, touch-free drawing interface. User
 
 3. Allow webcam access when prompted. The application opens in a fullscreen OpenCV window.
 
+### Web App
+
+1. Install the web dependencies:
+
+   ```bash
+   cd web
+   npm install
+   ```
+
+2. Run the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+3. Open the local URL printed by Vite and allow webcam access.
+
+4. Build for production:
+
+   ```bash
+   npm run build
+   ```
+
 ## Requirements
+
+### Desktop
 
 - Python
 - OpenCV
 - MediaPipe
 - NumPy
 - A working webcam
+
+### Web
+
+- Node.js
+- npm
+- A modern browser with webcam access
 
 ## Notes
 
