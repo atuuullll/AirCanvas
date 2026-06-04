@@ -6,7 +6,7 @@ const WIDTH = 1280;
 const HEIGHT = 720;
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
-const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm";
+const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
 
 const HAND_CONNECTIONS = [
   [0, 1],
@@ -57,6 +57,22 @@ const MotionAside = motion.aside;
 const MotionDiv = motion.div;
 const MotionSection = motion.section;
 const MotionSpan = motion.span;
+
+async function createHandLandmarker(vision, delegate) {
+  const options = {
+    baseOptions: {
+      modelAssetPath: MODEL_URL,
+    },
+    runningMode: "VIDEO",
+    numHands: 1,
+  };
+
+  if (delegate) {
+    options.baseOptions.delegate = delegate;
+  }
+
+  return HandLandmarker.createFromOptions(vision, options);
+}
 
 function readableColorName(color) {
   const known = {
@@ -437,23 +453,41 @@ function App() {
 
     async function start() {
       try {
+        if (!window.isSecureContext) {
+          setStatus("Camera needs HTTPS. Open the Netlify HTTPS URL, not an http URL.");
+          return;
+        }
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          setStatus("This browser does not support webcam access.");
+          return;
+        }
+
         setStatus("Loading hand tracking model...");
         const vision = await FilesetResolver.forVisionTasks(WASM_URL);
-        handLandmarker = await HandLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath: MODEL_URL,
-            delegate: "GPU",
-          },
-          runningMode: "VIDEO",
-          numHands: 1,
-        });
+        try {
+          handLandmarker = await createHandLandmarker(vision, "GPU");
+        } catch (gpuError) {
+          console.warn("GPU hand tracking failed, falling back to CPU.", gpuError);
+          setStatus("GPU hand tracking unavailable. Falling back to CPU...");
+          handLandmarker = await createHandLandmarker(vision);
+        }
 
         if (cancelled) return;
 
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: WIDTH, height: HEIGHT, facingMode: "user" },
-          audio: false,
-        });
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: WIDTH },
+              height: { ideal: HEIGHT },
+              facingMode: "user",
+            },
+            audio: false,
+          });
+        } catch (cameraError) {
+          console.warn("Preferred camera constraints failed, retrying with default video.", cameraError);
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
 
         const video = videoRef.current;
         video.srcObject = stream;
@@ -527,7 +561,7 @@ function App() {
         render();
       } catch (error) {
         console.error(error);
-        setStatus("Camera or hand tracking failed. Allow webcam access and use localhost or HTTPS.");
+        setStatus("Camera or hand tracking failed. Allow camera access, refresh, and check browser console details.");
       }
     }
 

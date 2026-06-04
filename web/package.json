@@ -10,7 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@mediapipe/tasks-vision": "^0.10.22",
+    "@mediapipe/tasks-vision": "0.10.35",
     "@tailwindcss/vite": "^4.1.8",
     "@vitejs/plugin-react": "^5.0.0",
     "motion": "^12.15.0",
