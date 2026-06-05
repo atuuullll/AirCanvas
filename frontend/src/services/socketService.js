@@ -11,7 +11,7 @@ class SocketService {
   }
 
   connect(roomId, userName) {
-    this.socket = io(SOCKET_SERVER);
+    this.socket = io(SOCKET_URL);
     this.roomId = roomId;
     this.userName = userName;
 
