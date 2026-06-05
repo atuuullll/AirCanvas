@@ -40,10 +40,10 @@ const PRESET_TOOLS = [
 ];
 
 const TOOL_ZONES = [
-  { label: "Blue", color: "#1e63ff", x1: 250, x2: 430 },
-  { label: "Red", color: "#ff3030", x1: 470, x2: 650 },
-  { label: "Green", color: "#13b957", x1: 690, x2: 870 },
-  { label: "Eraser", color: "eraser", x1: 910, x2: 1090 },
+  { label: "Blue", color: "#1e63ff", x1: 250, x2: 430, y1: 58, y2: 104 },
+  { label: "Red", color: "#ff3030", x1: 470, x2: 650, y1: 58, y2: 104 },
+  { label: "Green", color: "#13b957", x1: 690, x2: 870, y1: 58, y2: 104 },
+  { label: "Eraser", color: "eraser", x1: 910, x2: 1090, y1: 58, y2: 104 },
 ];
 
 const GESTURES = [
@@ -161,11 +161,17 @@ function App() {
     const drawingCtx = drawingCanvasRef.current?.getContext("2d");
     if (!drawingCtx) return;
 
-    drawingCtx.clearRect(0, 0, WIDTH, HEIGHT);
+    // Fill with white background in light theme
+    if (theme === "light") {
+      drawingCtx.fillStyle = "#ffffff";
+      drawingCtx.fillRect(0, 0, WIDTH, HEIGHT);
+    } else {
+      drawingCtx.clearRect(0, 0, WIDTH, HEIGHT);
+    }
     layerCanvasesRef.current.forEach((layer) => {
       drawingCtx.drawImage(layer, 0, 0);
     });
-  }, []);
+  }, [theme]);
 
   const captureSnapshot = useCallback(() => {
     return layerContextsRef.current.map((ctx) => ctx.getImageData(0, 0, WIDTH, HEIGHT));
@@ -342,9 +348,9 @@ function App() {
 
   const chooseToolFromPoint = useCallback(
     (point) => {
-      if (point.y < 56 || point.y > 104) return false;
-
-      const zone = TOOL_ZONES.find((tool) => point.x >= tool.x1 && point.x <= tool.x2);
+      const zone = TOOL_ZONES.find(
+        (tool) => point.x >= tool.x1 && point.x <= tool.x2 && point.y >= tool.y1 && point.y <= tool.y2,
+      );
       if (!zone) return false;
 
       setTool(zone.color);
@@ -353,6 +359,34 @@ function App() {
     },
     [setTool],
   );
+
+  const drawToolOverlay = useCallback((ctx) => {
+    ctx.save();
+    ctx.fillStyle = "rgba(8, 13, 20, 0.78)";
+    ctx.fillRect(0, 0, WIDTH, 122);
+
+    ctx.font = "22px Inter, Segoe UI, Arial";
+    ctx.fillStyle = "#f3f7fb";
+    ctx.fillText("Two fingers: move over a swatch to change color", 24, 38);
+
+    ctx.font = "18px Inter, Segoe UI, Arial";
+    TOOL_ZONES.forEach((tool) => {
+      const isActive = currentColorRef.current === tool.color;
+      const width = tool.x2 - tool.x1;
+      const height = tool.y2 - tool.y1;
+
+      ctx.fillStyle = tool.color === "eraser" ? "#f7f7f7" : tool.color;
+      ctx.fillRect(tool.x1, tool.y1, width, height);
+
+      ctx.lineWidth = isActive ? 5 : 2;
+      ctx.strokeStyle = isActive ? "#ffffff" : "rgba(255,255,255,0.35)";
+      ctx.strokeRect(tool.x1, tool.y1, width, height);
+
+      ctx.fillStyle = tool.color === "eraser" ? "#101820" : "#ffffff";
+      ctx.fillText(tool.label, tool.x1 + 14, tool.y1 + 30);
+    });
+    ctx.restore();
+  }, []);
 
   const updateFrameStats = useCallback((fingers = null) => {
     const now = performance.now();
@@ -508,6 +542,7 @@ function App() {
           outputCtx.translate(-WIDTH, 0);
           outputCtx.drawImage(video, 0, 0, WIDTH, HEIGHT);
           outputCtx.restore();
+          drawToolOverlay(outputCtx);
 
           const result = handLandmarker.detectForVideo(video, performance.now());
           const landmarks = result.landmarks?.[0];
@@ -548,7 +583,7 @@ function App() {
           } else if (nextGesture === "select") {
             endStroke();
             if (!chooseToolFromPoint(point)) {
-              setStatus(`Two fingers: select mode (${fingers.total} fingers detected).`);
+              setStatus(`Two fingers: select a color from the top canvas bar (${fingers.total} fingers detected).`);
             }
           } else {
             endStroke();
@@ -573,7 +608,7 @@ function App() {
       handLandmarker?.close();
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, [chooseToolFromPoint, clearDrawing, drawHandOverlay, drawStroke, endStroke, updateFrameStats]);
+  }, [chooseToolFromPoint, clearDrawing, drawHandOverlay, drawStroke, drawToolOverlay, endStroke, updateFrameStats]);
 
   const activeGesture = gesture.toLowerCase() === "ready" || gesture.toLowerCase() === "idle" ? "draw" : gesture.toLowerCase();
 
@@ -612,7 +647,7 @@ function App() {
 
       <section className="workspace" aria-label="AirCanvas dashboard">
         <MotionAside
-          className="panel p-5"
+          className="panel guide-panel p-5"
           aria-label="Gesture guide"
           initial={{ opacity: 0, x: -14 }}
           animate={{ opacity: 1, x: 0 }}
@@ -637,18 +672,32 @@ function App() {
 
           <div className="shortcut-panel" aria-label="Keyboard shortcuts">
             <h3>Shortcuts</h3>
-            <p>
-              <kbd>Ctrl</kbd> <kbd>Z</kbd> Undo
-            </p>
-            <p>
-              <kbd>Ctrl</kbd> <kbd>Y</kbd> Redo
-            </p>
-            <p>
-              <kbd>S</kbd> Save
-            </p>
-            <p>
-              <kbd>C</kbd> Clear
-            </p>
+            <div className="shortcut-row">
+              <span className="shortcut-keys">
+                <kbd>Ctrl</kbd>
+                <kbd>Z</kbd>
+              </span>
+              <span>Undo</span>
+            </div>
+            <div className="shortcut-row">
+              <span className="shortcut-keys">
+                <kbd>Ctrl</kbd>
+                <kbd>Y</kbd>
+              </span>
+              <span>Redo</span>
+            </div>
+            <div className="shortcut-row">
+              <span className="shortcut-keys">
+                <kbd>S</kbd>
+              </span>
+              <span>Save</span>
+            </div>
+            <div className="shortcut-row">
+              <span className="shortcut-keys">
+                <kbd>C</kbd>
+              </span>
+              <span>Clear</span>
+            </div>
           </div>
         </MotionAside>
 

@@ -108,6 +108,13 @@ body[data-theme="light"] .panel {
   letter-spacing: 0;
 }
 
+.guide-panel {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: auto;
+}
+
 .gesture-card {
   position: relative;
   display: flex;
@@ -163,6 +170,8 @@ body[data-theme="light"] .panel {
 }
 
 .shortcut-panel {
+  display: grid;
+  gap: 8px;
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--line);
@@ -174,10 +183,20 @@ body[data-theme="light"] .panel {
   font-size: 13px;
 }
 
-.shortcut-panel p {
-  margin: 8px 0;
+.shortcut-row {
+  display: grid;
+  min-height: 30px;
+  grid-template-columns: 70px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
   color: var(--text-soft);
   font-size: 13px;
+}
+
+.shortcut-keys {
+  display: flex;
+  gap: 5px;
+  align-items: center;
 }
 
 kbd {
@@ -185,7 +204,6 @@ kbd {
   min-width: 24px;
   height: 22px;
   place-items: center;
-  margin-right: 4px;
   border: 1px solid var(--line);
   border-radius: 5px;
   color: inherit;
@@ -227,6 +245,10 @@ body[data-theme="light"] .gesture-pill {
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
+}
+
+body[data-theme="light"] .stage {
+  background: #ffffff;
 }
 
 canvas {
