@@ -1,3 +1,4 @@
+import 'dotenv/config.js';
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIO } from 'socket.io';
@@ -6,23 +7,48 @@ import { v4 as uuidv4 } from 'uuid';
 
 const app = express();
 const httpServer = createServer(app);
+
+// Environment configuration
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
+
+// Socket.io configuration with CORS
 const io = new SocketIO(httpServer, {
   cors: {
-    origin: '*',
+    origin: ALLOWED_ORIGINS,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 
 // Store active rooms and their metadata
 const rooms = new Map();
 
-// Middleware
-app.use(cors());
+// CORS middleware
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'Server is running' });
+  res.json({ 
+    status: 'Server is running',
+    env: NODE_ENV,
+    clientUrl: CLIENT_URL,
+  });
 });
 
 app.post('/api/create-room', (req, res) => {
@@ -38,7 +64,10 @@ app.post('/api/create-room', (req, res) => {
     latestCanvasData: null,
   });
 
-  const shareLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}?share=${shareId}`;
+  // Generate public share link using CLIENT_URL
+  const shareLink = `${CLIENT_URL}?share=${shareId}`;
+  
+  console.log(`[Room] Created: ${roomId}, Share: ${shareId}, Link: ${shareLink}`);
   
   res.json({
     roomId,
@@ -66,12 +95,13 @@ app.get('/api/room/:shareId', (req, res) => {
   res.json({
     roomId: room.roomId,
     shareId: room.shareId,
+    isActive: room.owner !== null,
   });
 });
 
 // WebSocket Events
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  console.log(`[Socket] User connected: ${socket.id}`);
 
   // Owner shares their canvas
   socket.on('start-sharing', (data) => {
@@ -90,7 +120,7 @@ io.on('connection', (socket) => {
 
     socket.join(roomId);
     socket.emit('sharing-started', { shareId: room.shareId });
-    console.log(`Owner started sharing in room ${roomId}`);
+    console.log(`[Share] Owner started in room ${roomId}`);
   });
 
   // Viewer joins a shared session
@@ -110,11 +140,12 @@ io.on('connection', (socket) => {
       return;
     }
 
-    room.viewers.add({
+    const viewer = {
       socketId: socket.id,
       userName: userName || 'Viewer',
-    });
+    };
 
+    room.viewers.add(viewer);
     socket.join(room.roomId);
     socket.emit('joined-share', { roomId: room.roomId, ownerName: room.owner?.userName });
     
@@ -129,7 +160,7 @@ io.on('connection', (socket) => {
       viewerCount: room.viewers.size,
     });
 
-    console.log(`Viewer ${userName} joined room ${room.roomId}`);
+    console.log(`[Share] Viewer ${userName} joined room ${room.roomId} (total: ${room.viewers.size})`);
   });
 
   // Canvas update from owner
@@ -145,7 +176,7 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('canvas-update', canvasData);
   });
 
-  // Hand landmarks update from owner (for shared cursor visualization)
+  // Hand landmarks update from owner
   socket.on('hand-tracking', (data) => {
     const { roomId, landmarks, gesture } = data;
     const room = rooms.get(roomId);
@@ -168,16 +199,15 @@ io.on('connection', (socket) => {
     socket.leave(roomId);
     
     if (room.owner?.socketId === socket.id) {
+      console.log(`[Share] Stopped room ${roomId}`);
       room.owner = null;
       room.latestCanvasData = null;
     }
-
-    console.log(`Sharing stopped in room ${roomId}`);
   });
 
   // User disconnects
   socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
+    console.log(`[Socket] User disconnected: ${socket.id}`);
 
     // Clean up room data
     for (const [roomId, room] of rooms) {
@@ -189,6 +219,7 @@ io.on('connection', (socket) => {
       room.viewers.forEach((viewer) => {
         if (viewer.socketId === socket.id) {
           room.viewers.delete(viewer);
+          console.log(`[Share] Viewer left room ${roomId} (total: ${room.viewers.size})`);
         }
       });
 
@@ -197,6 +228,7 @@ io.on('connection', (socket) => {
         setTimeout(() => {
           if (room.owner === null && room.viewers.size === 0) {
             rooms.delete(roomId);
+            console.log(`[Room] Cleaned up empty room ${roomId}`);
           }
         }, 3600000);
       }
@@ -207,5 +239,17 @@ io.on('connection', (socket) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`
+╔════════════════════════════════════════╗
+║  🚀 AirCanvas Sharing Server Ready  ║
+╚════════════════════════════════════════╝
+  
+  🌐 Server: http://localhost:${PORT}
+  🌍 Environment: ${NODE_ENV}
+  🎯 Client URL: ${CLIENT_URL}
+  
+  📡 WebSocket ready for connections
+  ✅ CORS enabled for: ${ALLOWED_ORIGINS.join(', ')}
+  `);
 });
+

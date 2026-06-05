@@ -356,7 +356,8 @@ function App() {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/api/create-room', {
+      const backendUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+      const response = await fetch(`${backendUrl}/api/create-room`, {
         method: 'POST',
       });
       const data = await response.json();
