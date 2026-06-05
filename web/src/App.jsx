@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 import { motion } from "motion/react";
+import { 
+  initializeSocket, 
+  startSharing, 
+  joinShare, 
+  sendCanvasData, 
+  stopSharing,
+  onCanvasUpdate,
+  onViewerJoined,
+  onSharingEnded
+} from "./shareUtils";
+import { ShareModal } from "./ShareModal";
+import { ViewerModal } from "./ViewerModal";
 
 const WIDTH = 1280;
 const HEIGHT = 720;
@@ -157,6 +169,18 @@ function App() {
   const [brushType, setBrushType] = useState("round");
   const [exportFormat, setExportFormat] = useState("png");
 
+  // Sharing state
+  const [isSharing, setIsSharing] = useState(false);
+  const [isViewing, setIsViewing] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [viewerCount, setViewerCount] = useState(0);
+  const [roomId, setRoomId] = useState("");
+  const [shareId, setShareId] = useState("");
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [ownerName, setOwnerName] = useState("");
+  const socketRef = useRef(null);
+  const canvasUpdateTimeoutRef = useRef(null);
+
   const redrawDrawingCanvas = useCallback(() => {
     const drawingCtx = drawingCanvasRef.current?.getContext("2d");
     if (!drawingCtx) return;
@@ -171,7 +195,24 @@ function App() {
     layerCanvasesRef.current.forEach((layer) => {
       drawingCtx.drawImage(layer, 0, 0);
     });
-  }, [theme]);
+
+    // Send canvas data to viewers if sharing (throttled)
+    if (isSharing && roomId && socketRef.current) {
+      if (canvasUpdateTimeoutRef.current) {
+        clearTimeout(canvasUpdateTimeoutRef.current);
+      }
+
+      canvasUpdateTimeoutRef.current = setTimeout(() => {
+        const imageData = drawingCtx.getImageData(0, 0, WIDTH, HEIGHT);
+        const canvasData = {
+          data: Array.from(imageData.data),
+          width: imageData.width,
+          height: imageData.height,
+        };
+        sendCanvasData(roomId, canvasData);
+      }, 100); // Throttle updates to 10 per second
+    }
+  }, [theme, isSharing, roomId]);
 
   const captureSnapshot = useCallback(() => {
     return layerContextsRef.current.map((ctx) => ctx.getImageData(0, 0, WIDTH, HEIGHT));
@@ -303,6 +344,45 @@ function App() {
     saveDrawing();
     setStatus("Sharing is not supported here, so the drawing was saved.");
   }, [getExportCanvas, saveDrawing]);
+
+  const handleStartSharing = useCallback(async () => {
+    if (isSharing) {
+      stopSharing(roomId);
+      setIsSharing(false);
+      setShareLink("");
+      setViewerCount(0);
+      setStatus("Sharing stopped.");
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3000/api/create-room', {
+        method: 'POST',
+      });
+      const data = await response.json();
+      
+      await startSharing(data.roomId, 'AirCanvas User');
+      
+      setRoomId(data.roomId);
+      setShareId(data.shareId);
+      setShareLink(data.shareLink);
+      setIsSharing(true);
+      setShowShareModal(true);
+      setStatus('Sharing started! Share the link with others.');
+    } catch (error) {
+      console.error('Error starting share:', error);
+      setStatus('Failed to start sharing: ' + error.message);
+    }
+  }, [isSharing, roomId]);
+
+  const handleStopViewing = useCallback(() => {
+    if (isViewing) {
+      setIsViewing(false);
+      setOwnerName("");
+      setStatus("Stopped viewing shared canvas.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [isViewing]);
 
   const drawStroke = useCallback(
     (point, forceEraser = false) => {
@@ -455,6 +535,60 @@ function App() {
   useEffect(() => {
     exportFormatRef.current = exportFormat;
   }, [exportFormat]);
+
+  // Socket initialization and sharing setup
+  useEffect(() => {
+    socketRef.current = initializeSocket();
+
+    // Check if this is a viewer joining via share link
+    const params = new URLSearchParams(window.location.search);
+    const shareParam = params.get('share');
+
+    if (shareParam) {
+      // Join as viewer
+      joinShare(shareParam, 'User')
+        .then((data) => {
+          setIsViewing(true);
+          setOwnerName(data.ownerName || 'Someone');
+          setRoomId(data.roomId);
+          setStatus('Viewing shared canvas. Waiting for updates...');
+        })
+        .catch((error) => {
+          setStatus('Failed to join share: ' + error.message);
+        });
+
+      onCanvasUpdate((canvasData) => {
+        if (drawingCanvasRef.current) {
+          const ctx = drawingCanvasRef.current.getContext('2d');
+          const imageData = new ImageData(
+            new Uint8ClampedArray(canvasData.data),
+            canvasData.width,
+            canvasData.height
+          );
+          ctx.putImageData(imageData, 0, 0);
+        }
+      });
+
+      onSharingEnded((data) => {
+        setIsViewing(false);
+        setStatus(data.message);
+        setOwnerName('');
+      });
+    }
+
+    onViewerJoined((data) => {
+      if (isSharing) {
+        setViewerCount(data.viewerCount);
+        setStatus(`${data.viewerName} joined the share`);
+      }
+    });
+
+    return () => {
+      if (isSharing) {
+        stopSharing(roomId);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeydown = (event) => {
@@ -622,6 +756,21 @@ function App() {
           <span>AirCanvas Pro</span>
         </div>
         <div className="flex items-center gap-2" aria-label="Application actions">
+          <button
+            className="icon-button"
+            type="button"
+            aria-label="Share canvas"
+            onClick={() => {
+              if (isSharing) {
+                setShowShareModal(true);
+              } else {
+                handleStartSharing();
+              }
+            }}
+            title={isSharing ? "View share details" : "Share your canvas"}
+          >
+            {isSharing ? "📤" : "🔗"}
+          </button>
           <button
             className="icon-button"
             type="button"
@@ -884,6 +1033,21 @@ function App() {
           </strong>
         </span>
       </footer>
+
+      {isViewing && (
+        <ViewerModal
+          ownerName={ownerName}
+          onClose={handleStopViewing}
+        />
+      )}
+
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        shareLink={shareLink}
+        viewerCount={viewerCount}
+        isSharing={isSharing}
+      />
     </main>
   );
 }

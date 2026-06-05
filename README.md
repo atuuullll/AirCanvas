@@ -16,6 +16,10 @@ The application is designed as an accessible, touch-free drawing interface. User
 - Multi-item clipboard history with thumbnail indicator
 - Keyboard-supported undo, redo, and clipboard cycling
 - Fullscreen OpenCV canvas with live gesture guidance
+- **🔗 Real-Time Canvas Sharing**: Share your canvas with anyone via unique link (like Google Meet)
+- **📡 Live Sync**: Canvas updates stream in real-time to all viewers
+- **👥 Viewer Count**: See how many people are viewing your canvas
+- **🌐 WebSocket-Powered**: Fast, real-time communication using Socket.io
 
 ## Gesture Controls
 
@@ -126,6 +130,44 @@ The web app currently runs fully in the browser. A backend can be added later fo
    ```bash
    npm run build
    ```
+
+### Real-Time Canvas Sharing (Web App Only)
+
+AirCanvas now supports real-time canvas sharing! Share your drawing with anyone via a unique link.
+
+**Quick Start:**
+
+1. Start both the backend server and web app:
+   
+   **On Linux/Mac:**
+   ```bash
+   ./start.sh
+   ```
+   
+   **On Windows:**
+   ```bash
+   start.bat
+   ```
+   
+   Or manually:
+   ```bash
+   # Terminal 1: Start backend
+   cd server
+   npm install
+   npm start
+   
+   # Terminal 2: Start web app
+   cd web
+   npm install
+   npm run dev
+   ```
+
+2. **Share your canvas**: Click the 🔗 Share button to generate a unique share link
+3. **Send the link**: Copy and send the link to anyone
+4. **Real-time sync**: Your canvas updates stream to all viewers in real-time
+5. **View only**: Viewers can only see your canvas (read-only)
+
+For detailed sharing documentation, see [SHARING.md](SHARING.md).
 
 ## Requirements
 
