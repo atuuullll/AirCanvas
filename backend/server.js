@@ -19,6 +19,26 @@ const io = new Server(server, {
 app.use(cors({ origin: FRONTEND_URL }));
 app.use(express.json());
 
+// Welcome route
+app.get('/', (req, res) => {
+  res.json({
+    message: '🎨 AirCanvas Real-Time Sharing Backend',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      'GET /api/active-rooms': 'Get all active drawing rooms',
+      'GET /api/rooms/:roomId': 'Get specific room details',
+      'Socket.IO': 'For real-time canvas sharing'
+    },
+    usage: 'Connect via Socket.IO client with room ID'
+  });
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date() });
+});
+
 // Store active rooms and users
 const rooms = new Map();
 
